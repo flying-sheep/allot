@@ -18,7 +18,3 @@ classifiers = [
 
 [tool.flit.metadata.requires-extra]
 test = ['pytest', 'pytest-black']
-
-[tool.black]
-py36 = false
-exclude = '3.5'

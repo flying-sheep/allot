@@ -14,6 +14,9 @@ from get_version import get_version
 __version__ = get_version(__file__)
 
 
+Pass = object()
+
+
 class allot:
     """
     Single-dispatch generic function decorator.
@@ -82,10 +85,7 @@ class allot:
                 )
             func = cls
 
-            # only import typing if annotation parsing is necessary
-            from typing import get_type_hints
-
-            argname, cls = next(iter(get_type_hints(func).items()))
+            argname, cls = next(iter(t.get_type_hints(func).items()))
             assert isinstance(
                 cls, type
             ), f"Invalid annotation for {argname!r}. {cls!r} is not a class."
