@@ -1,0 +1,24 @@
+[build-system]
+requires = ['flit>=1.3', 'future-fstrings']
+build-backend = 'flit.buildapi'
+
+[tool.flit.metadata]
+module = 'allot'
+author = 'Philipp A.'
+author-email = 'flying-sheep@web.de'
+home-page = 'https://github.com/flying-sheep/allot'
+description-file = 'README.rst'
+requires = ['get_version']
+requires-python = '>=3.6'
+classifiers = [
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+    'Programming Language :: Python :: 3',
+]
+
+[tool.flit.metadata.requires-extra]
+test = ['pytest', 'pytest-black']
+
+[tool.black]
+py36 = false
+exclude = '3.5'

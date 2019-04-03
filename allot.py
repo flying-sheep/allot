@@ -1,12 +1,22 @@
+"""
+A more fine-grained functools.singledispatch
+"""
+
 import types
 import weakref
 import typing as t
 from abc import get_cache_token
 from functools import update_wrapper, _find_impl
 
+from get_version import get_version
+
+
+__version__ = get_version(__file__)
+
 
 class allot:
-    """Single-dispatch generic function decorator.
+    """
+    Single-dispatch generic function decorator.
     Transforms a function into a generic function, which can have different
     behaviours depending upon the type of its first argument. The decorated
     function acts as the default implementation, and additional
@@ -35,7 +45,8 @@ class allot:
         self.dispatch_cache.clear()
 
     def dispatch(self, cls: t.Type):
-        """generic_func.dispatch(cls) -> <function implementation>
+        """
+        generic_func.dispatch(cls) -> <function implementation>
         Runs the dispatch algorithm to return the best available implementation
         for the given *cls* registered on *generic_func*.
         """
@@ -55,7 +66,8 @@ class allot:
         return impl
 
     def register(self, cls: t.Type, func: t.Optional[t.Callable] = None) -> t.Callable:
-        """generic_func.register(cls, func) -> func
+        """
+        generic_func.register(cls, func) -> func
         Registers a new implementation for the given *cls* on a *generic_func*.
         """
         if func is None:
@@ -85,7 +97,8 @@ class allot:
 
 
 class allot_method(allot):
-    """Single-dispatch generic method descriptor.
+    """
+    Single-dispatch generic method descriptor.
     Supports wrapping existing descriptors and handles non-descriptor
     callables as instance methods.
     """
