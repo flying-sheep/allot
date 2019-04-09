@@ -2,11 +2,8 @@
 A more fine-grained functools.singledispatch
 """
 
-import types
-import weakref
 import typing as t
-from abc import get_cache_token
-from functools import update_wrapper, _find_impl
+from functools import update_wrapper, _compose_mro
 
 from get_version import get_version
 
@@ -32,41 +29,44 @@ class allot:
             raise TypeError(f"{func!r} is not callable or a descriptor")
 
         self.registry = {object: func}
-        self.dispatch_cache = weakref.WeakKeyDictionary()
-        self.cache_token = None
         self.func = func
         self.funcname = getattr(func, "__name__", "allot function")
         update_wrapper(self, func)
 
-    def __call__(self, *args, **kw):
+    def __call__(self, *args, **kwargs):
         if not args:
             raise TypeError(f"{self.funcname} requires at least 1 positional argument")
 
-        return self.dispatch(args[0].__class__)(*args, **kw)
+        for func in self.dispatch(args[0].__class__):
+            rv = func(*args, **kwargs)
+            if rv is not Pass:
+                return rv
 
-    def _clear_cache(self):
-        self.dispatch_cache.clear()
+        raise AllotError(args[0], self)
 
-    def dispatch(self, cls: t.Type):
+    def dispatch(self, cls: t.Type) -> t.Generator[t.Callable, None, None]:
         """
         generic_func.dispatch(cls) -> <function implementation>
         Runs the dispatch algorithm to return the best available implementation
         for the given *cls* registered on *generic_func*.
         """
-        if self.cache_token is not None:
-            current_token = get_cache_token()
-            if self.cache_token != current_token:
-                self.dispatch_cache.clear()
-                self.cache_token = current_token
-        try:
-            impl = self.dispatch_cache[cls]
-        except KeyError:
-            try:
-                impl = self.registry[cls]
-            except KeyError:
-                impl = _find_impl(cls, self.registry)
-            self.dispatch_cache[cls] = impl
-        return impl
+        mro = _compose_mro(cls, self.registry.keys())
+        match = None
+        for typ in mro:
+            if match is not None:
+                # If *match* is an implicit ABC but there is another unrelated,
+                # equally matching implicit ABC, refuse the temptation to guess.
+                if (
+                    typ in self.registry
+                    and typ not in cls.__mro__
+                    and match not in cls.__mro__
+                    and not issubclass(match, typ)
+                ):
+                    raise RuntimeError(f"Ambiguous dispatch: {match} or {typ}")
+                yield self.registry.get(match)
+            if typ in self.registry:
+                match = typ
+        yield self.registry.get(match)
 
     def register(self, cls: t.Type, func: t.Optional[t.Callable] = None) -> t.Callable:
         """
@@ -90,9 +90,6 @@ class allot:
                 cls, type
             ), f"Invalid annotation for {argname!r}. {cls!r} is not a class."
         self.registry[cls] = func
-        if self.cache_token is None and hasattr(cls, "__abstractmethods__"):
-            self.cache_token = get_cache_token()
-        self.dispatch_cache.clear()
         return func
 
 
@@ -105,8 +102,12 @@ class allot_method(allot):
 
     def __get__(self, obj: t.Any, cls: t.Type) -> t.Callable:
         def _method(*args, **kwargs):
-            method = self.dispatch(args[0].__class__)
-            return method.__get__(obj, cls)(*args, **kwargs)
+            for method in self.dispatch(args[0].__class__):
+                method = method.__get__(obj, cls)
+                rv = method(*args, **kwargs)
+                if rv is not Pass:
+                    return rv
+            raise AllotError(args[0], self)
 
         _method.__isabstractmethod__ = self.__isabstractmethod__
         _method.register = self.register
@@ -116,3 +117,20 @@ class allot_method(allot):
     @property
     def __isabstractmethod__(self):
         return getattr(self.func, "__isabstractmethod__", False)
+
+
+class AllotError(LookupError):
+    """
+    Exception thrown when all 
+    """
+
+    def __init__(self, obj: t.Any, allot: allot):
+        super().__init__()
+        self.obj = obj
+        self.allot = allot
+
+    def __str__(self) -> str:
+        return (
+            f"All matching registered functions of {self.allot.funcname} "
+            f"pass for object {self.obj!r} (of class {type(self.obj)!r})."
+        )

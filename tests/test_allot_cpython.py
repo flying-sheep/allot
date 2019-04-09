@@ -1,3 +1,4 @@
+import re
 import sys
 import decimal
 import collections
@@ -68,8 +69,8 @@ def test_register_decorator():
 
     assert g("") == "base"
     assert g(12) == "int 12"
-    assert g.dispatch(int) is g_int
-    assert g.dispatch(object) is g.dispatch(str)
+    assert next(g.dispatch(int)) is g_int
+    assert next(g.dispatch(object)) is next(g.dispatch(str))
     # Note: in the assert above this is not g.
     # @singledispatch returns the wrapper.
 
@@ -529,113 +530,6 @@ def swap_attr(obj, attr, new_val):
                 delattr(obj, attr)
 
 
-def test_cache_invalidation():
-    from collections import UserDict
-    import weakref
-
-    class TracingDict(UserDict):
-        def __init__(self, *args, **kwargs):
-            super(TracingDict, self).__init__(*args, **kwargs)
-            self.set_ops = []
-            self.get_ops = []
-
-        def __getitem__(self, key):
-            result = self.data[key]
-            self.get_ops.append(key)
-            return result
-
-        def __setitem__(self, key, value):
-            self.set_ops.append(key)
-            self.data[key] = value
-
-        def clear(self):
-            self.data.clear()
-
-    td = TracingDict()
-    with swap_attr(weakref, "WeakKeyDictionary", lambda: td):
-        c = collections.abc
-
-        @allot
-        def g(arg):
-            return "base"
-
-        d = {}
-        l = []
-        assert len(td) == 0
-        assert g(d) == "base"
-        assert len(td) == 1
-        assert td.get_ops == []
-        assert td.set_ops == [dict]
-        assert td.data[dict] == g.registry[object]
-        assert g(l) == "base"
-        assert len(td) == 2
-        assert td.get_ops == []
-        assert td.set_ops == [dict, list]
-        assert td.data[dict] == g.registry[object]
-        assert td.data[list] == g.registry[object]
-        assert td.data[dict] == td.data[list]
-        assert g(l) == "base"
-        assert g(d) == "base"
-        assert td.get_ops == [list, dict]
-        assert td.set_ops == [dict, list]
-        g.register(list, lambda arg: "list")
-        assert td.get_ops == [list, dict]
-        assert len(td) == 0
-        assert g(d) == "base"
-        assert len(td) == 1
-        assert td.get_ops == [list, dict]
-        assert td.set_ops == [dict, list, dict]
-        assert td.data[dict] == functools._find_impl(dict, g.registry)
-        assert g(l) == "list"
-        assert len(td) == 2
-        assert td.get_ops == [list, dict]
-        assert td.set_ops == [dict, list, dict, list]
-        assert td.data[list] == functools._find_impl(list, g.registry)
-
-        class X:
-            pass
-
-        c.MutableMapping.register(X)  # Will not invalidate the cache,
-        # not using ABCs yet.
-        assert g(d) == "base"
-        assert g(l) == "list"
-        assert td.get_ops == [list, dict, dict, list]
-        assert td.set_ops == [dict, list, dict, list]
-        g.register(c.Sized, lambda arg: "sized")
-        assert len(td) == 0
-        assert g(d) == "sized"
-        assert len(td) == 1
-        assert td.get_ops == [list, dict, dict, list]
-        assert td.set_ops == [dict, list, dict, list, dict]
-        assert g(l) == "list"
-        assert len(td) == 2
-        assert td.get_ops == [list, dict, dict, list]
-        assert td.set_ops == [dict, list, dict, list, dict, list]
-        assert g(l) == "list"
-        assert g(d) == "sized"
-        assert td.get_ops == [list, dict, dict, list, list, dict]
-        assert td.set_ops == [dict, list, dict, list, dict, list]
-        g.dispatch(list)
-        g.dispatch(dict)
-        assert td.get_ops == [list, dict, dict, list, list, dict, list, dict]
-        assert td.set_ops == [dict, list, dict, list, dict, list]
-        c.MutableSet.register(X)  # Will invalidate the cache.
-        assert len(td) == 2  # Stale cache.
-        assert g(l) == "list"
-        assert len(td) == 1
-        g.register(c.MutableMapping, lambda arg: "mutablemapping")
-        assert len(td) == 0
-        assert g(d) == "mutablemapping"
-        assert len(td) == 1
-        assert g(l) == "list"
-        assert len(td) == 2
-        g.register(dict, lambda arg: "dict")
-        assert g(d) == "dict"
-        assert g(l) == "list"
-        g._clear_cache()
-        assert len(td) == 0
-
-
 def test_annotations():
     @allot
     def i(arg):
@@ -859,5 +753,5 @@ def test_invalid_positional_argument():
         pass
 
     msg = "f requires at least 1 positional argument"
-    with pytest.raises(TypeError, message=msg):
+    with pytest.raises(TypeError, match=re.escape(msg)):
         f()
