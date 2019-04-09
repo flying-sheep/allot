@@ -1,5 +1,12 @@
-allot
-=====
+allot |b-pypi| |b-travis| |b-codecov|
+=====================================
+
+.. |b-pypi| image:: https://img.shields.io/pypi/v/allot.svg
+   :target: https://pypi.org/project/allot
+.. |b-travis| image:: https://travis-ci.com/flying-sheep/allot.svg?branch=master
+   :target: https://travis-ci.com/flying-sheep/allot
+.. |b-codecov| image:: https://codecov.io/gh/flying-sheep/allot/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/flying-sheep/allot
 
 Like ``functools.singledispatch``, but will allow to register multiple functions for each class.
 

@@ -17,4 +17,10 @@ classifiers = [
 ]
 
 [tool.flit.metadata.requires-extra]
-test = ['pytest', 'pytest-black']
+test = [
+    'pytest',
+    'pytest-black',
+    'pytest-cov',
+    'docutils',
+    'pygments',
+]
