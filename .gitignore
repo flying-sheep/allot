@@ -3,6 +3,10 @@
 __pycache__/
 /dist/
 
+# Coverage
+/.coverage
+/htmlcov/
+
 # IDEs
 /.idea/
 /.vscode/
