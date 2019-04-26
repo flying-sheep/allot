@@ -8,6 +8,14 @@ allot |b-pypi| |b-travis| |b-codecov|
 .. |b-codecov| image:: https://codecov.io/gh/flying-sheep/allot/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/flying-sheep/allot
 
+.. figure:: ./alot-more.png
+   :align: right
+   :figwidth: 300px
+
+   Image owned by Allie Brosh of `Hyperbole and a Half`_.
+
+.. _Hyperbole and a Half: http://hyperboleandahalf.blogspot.com/
+
 Like ``functools.singledispatch``, but will allow to register multiple functions for each class.
 
 If a registered function decides it cannot handle the value after inspecting it, it can give up and let others try their luck:
