@@ -121,7 +121,7 @@ class allot_method(allot):
 
 class AllotError(LookupError):
     """
-    Exception thrown when all 
+    Exception thrown when all
     """
 
     def __init__(self, obj: t.Any, allot: allot):
