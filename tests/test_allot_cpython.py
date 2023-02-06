@@ -373,6 +373,7 @@ def test_mro_conflicts():
     assert g(o) == "sized"  # see above: Sized is in __mro__
     c.Set.register(O)
     assert g(o) == "set"  # because c.Set is a subclass of
+
     # c.Sized and c.Container
     class P:
         pass
@@ -405,6 +406,7 @@ def test_mro_conflicts():
     assert g(q) == "sized"  # because it's explicitly in __mro__
     c.Set.register(Q)
     assert g(q) == "set"  # because c.Set is a subclass of
+
     # c.Sized and c.Iterable
     @allot
     def h(arg):
